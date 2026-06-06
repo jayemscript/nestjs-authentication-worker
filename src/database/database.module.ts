@@ -3,8 +3,10 @@ import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database.service';
+import { User } from 'src/modules/users/entities/user.entity';
 
-const ENTITIES = [];
+
+const ENTITIES = [User];
 
 @Global()
 @Module({

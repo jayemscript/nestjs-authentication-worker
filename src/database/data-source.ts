@@ -2,10 +2,12 @@
 
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
+import { User } from 'src/modules/users/entities/user.entity';
+
 
 config();
 
-const ENTITIES = [];
+const ENTITIES = [User];
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
