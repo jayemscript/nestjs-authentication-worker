@@ -15,6 +15,7 @@ import { AuthResponseDto } from 'src/common/dtos/auth-response.dto';
 import { MESSAGES } from 'src/common/constants/messages.constants';
 import { AUTH_CONSTANTS } from 'src/common/constants/auth.constants';
 import { UserStatus } from 'src/common/enums/user-status.enum';
+import { AuthVerifyResponseDto } from './dtos/auth-verify-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -159,6 +160,28 @@ export class AuthService {
 
   async logout(): Promise<{ message: string }> {
     return { message: MESSAGES.AUTH.LOGOUT_SUCCESS };
+  }
+
+  async verify(userId: string): Promise<AuthVerifyResponseDto> {
+    const user = await this.userRepository.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException(MESSAGES.ERROR.INVALID_TOKEN);
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException(MESSAGES.USER.ACCOUNT_DEACTIVATED);
+    }
+
+    return {
+      status: 200,
+      message: 'Token is valid',
+      data: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+    };
   }
 
   private generateAuthResponse(user: any): AuthResponseDto {

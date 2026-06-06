@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Res, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Res, Req } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
@@ -12,6 +12,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { Private } from 'src/common/decorators/private.decorator';
 import { User } from '../users/entities/user.entity';
+import { AuthVerifyResponseDto } from './dtos/auth-verify-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -89,5 +90,11 @@ export class AuthController {
     const result = await this.authService.logout();
     CookieUtil.clearAllCookies(res);
     return result;
+  }
+
+  @Get('verify')
+  @UseGuards(AuthGuard)
+  async verify(@CurrentUser() user: any): Promise<AuthVerifyResponseDto> {
+    return this.authService.verify(user.id);
   }
 }
