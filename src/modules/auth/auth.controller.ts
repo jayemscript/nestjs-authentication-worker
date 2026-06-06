@@ -9,6 +9,9 @@ import { AuthGuard } from 'src/common/guards/auth.guard';
 import { RefreshGuard } from 'src/common/guards/refresh.guard';
 import { CookieUtil } from 'src/common/utils/cookie.util';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { Throttle } from '@nestjs/throttler';
+import { Private } from 'src/common/decorators/private.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +22,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  // @Throttle({ auth: { ttl: 60000, limit: 10 } })
   async register(
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -40,6 +44,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  // @Throttle({ auth: { ttl: 60000, limit: 10 } })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -59,7 +64,7 @@ export class AuthController {
     return result;
   }
 
-  @Public()
+  @Private()
   @Post('refresh')
   @UseGuards(RefreshGuard)
   async refresh(
@@ -77,16 +82,12 @@ export class AuthController {
     return result;
   }
 
+  @Private()
   @Post('logout')
   @UseGuards(AuthGuard)
-  async logout(
-    @CurrentUser() user: any,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.authService.logout(user.id);
-
+  async logout(@Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.logout();
     CookieUtil.clearAllCookies(res);
-
     return result;
   }
 }

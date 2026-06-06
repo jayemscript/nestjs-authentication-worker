@@ -157,7 +157,7 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string): Promise<{ message: string }> {
+  async logout(): Promise<{ message: string }> {
     return { message: MESSAGES.AUTH.LOGOUT_SUCCESS };
   }
 

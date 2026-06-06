@@ -33,11 +33,11 @@ import { UsersModule } from './modules/users/users.module';
     // ]),
   ],
   controllers: [],
-  // providers: [
-  //   {
-  //     provide: APP_GUARD,
-  //     useClass: ThrottlerGuard,
-  //   },
-  // ],
+  providers: [
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: ThrottlerGuard,
+    // },
+  ],
 })
 export class AppModule {}
