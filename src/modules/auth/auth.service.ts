@@ -33,7 +33,7 @@ export class AuthService {
 
     const validatePassword = ValidatorsUtil.validatePassword(
       password,
-      this.configService.get<number>('PASSWORD_MIN_LENGTH') || 8,
+      parseInt(this.configService.get<string>('PASSWORD_MIN_LENGTH') || '8', 10),
     );
 
     if (!validatePassword.valid) {
@@ -52,7 +52,10 @@ export class AuthService {
 
     const hashedPassword = await HashUtil.hashPassword(
       password,
-      this.configService.get<number>('PASSWORD_HASH_ROUNDS') || 10,
+      parseInt(
+        this.configService.get<string>('PASSWORD_HASH_ROUNDS') || '10',
+        10,
+      ),
     );
 
     const user = await this.userRepository.createUser({
@@ -93,10 +96,10 @@ export class AuthService {
 
       if (
         user.failedLoginAttempts >=
-        (this.configService.get<number>('MAX_LOGIN_ATTEMPTS') || 5)
+        parseInt(this.configService.get<string>('MAX_LOGIN_ATTEMPTS') || '5', 10)
       ) {
         const lockTimeMinutes =
-          this.configService.get<number>('LOCK_TIME_MINUTES') || 15;
+          parseInt(this.configService.get<string>('LOCK_TIME_MINUTES') || '15', 10);
         user.lockedUntil = new Date(Date.now() + lockTimeMinutes * 60 * 1000);
         user.status = UserStatus.LOCKED;
       }
@@ -148,9 +151,9 @@ export class AuthService {
 
   private generateAuthResponse(user: any): AuthResponseDto {
     const accessTokenExpiration =
-      this.configService.get<number>('JWT_ACCESS_EXPIRATION') || 900;
+      parseInt(this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '900', 10);
     const refreshTokenExpiration =
-      this.configService.get<number>('JWT_REFRESH_EXPIRATION') || 2592000;
+      parseInt(this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '2592000', 10);
 
     const accessToken = this.jwtService.sign(
       {

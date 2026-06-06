@@ -4,7 +4,7 @@ export const REGEX = {
 
   USERNAME: /^[a-zA-Z0-9_]{3,20}$/,
 
-  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/,
+  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[\w@$!%*?&#-]{8,}$/,
 
   PHONE: /^[\d\s\-\+\(\)]{10,}$/,
 

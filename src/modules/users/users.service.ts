@@ -64,7 +64,7 @@ export class UsersService {
     if (updateUserDto.password) {
       const hashedPassword = await HashUtil.hashPassword(
         updateUserDto.password,
-        this.configService.get<number>('PASSWORD_HASH_ROUNDS') || 10,
+        parseInt(this.configService.get<string>('PASSWORD_HASH_ROUNDS') || '10', 10),
       );
       updateData.password = hashedPassword;
     }
