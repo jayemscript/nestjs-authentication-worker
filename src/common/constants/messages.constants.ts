@@ -27,6 +27,10 @@ export const MESSAGES = {
     SESSION_REVOKED: 'Session revoked successfully',
     SESSION_NOT_FOUND: 'Session not found',
     NEW_DEVICE_LOGIN: 'Login detected from new device',
+    ALL_SESSIONS_REVOKED: 'All sessions revoked successfully',
+    OTHER_SESSIONS_REVOKED: 'All other sessions revoked successfully',
+    SESSIONS_RETRIEVED: 'Active sessions retrieved successfully',
+    MAX_SESSIONS_REACHED: 'Maximum sessions reached, oldest session revoked',
   },
 
   VALIDATION: {

@@ -5,10 +5,11 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { AUTH_CONSTANTS } from '../constants/auth.constants';
 import { MESSAGES } from '../constants/messages.constants';
+import { CookieUtil } from '../utils/cookie.util';
 
 @Injectable()
 export class RefreshGuard implements CanActivate {
@@ -16,9 +17,11 @@ export class RefreshGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
+    const response = context.switchToHttp().getResponse<Response>();
     const token = this.extractRefreshToken(request);
 
     if (!token) {
+      CookieUtil.clearAllCookies(response);
       throw new UnauthorizedException(MESSAGES.ERROR.UNAUTHORIZED);
     }
 
@@ -27,6 +30,7 @@ export class RefreshGuard implements CanActivate {
       request['user'] = payload;
       return true;
     } catch (error) {
+      CookieUtil.clearAllCookies(response);
       throw new UnauthorizedException(MESSAGES.ERROR.TOKEN_EXPIRED);
     }
   }

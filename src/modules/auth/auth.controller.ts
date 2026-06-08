@@ -9,10 +9,12 @@ import { AuthGuard } from 'src/common/guards/auth.guard';
 import { RefreshGuard } from 'src/common/guards/refresh.guard';
 import { CookieUtil } from 'src/common/utils/cookie.util';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentSession } from 'src/common/decorators/current-session.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { Private } from 'src/common/decorators/private.decorator';
 import { User } from '../users/entities/user.entity';
 import { AuthVerifyResponseDto } from './dtos/auth-verify-response.dto';
+import { AUTH_CONSTANTS } from 'src/common/constants/auth.constants';
 
 @Controller('auth')
 export class AuthController {
@@ -25,10 +27,11 @@ export class AuthController {
   @Post('register')
   // @Throttle({ auth: { ttl: 60000, limit: 10 } })
   async register(
+    @Req() req: Request,
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(registerDto);
+    const result = await this.authService.register(registerDto, req);
 
     const cookieExpiration =
       this.configService.get<number>('COOKIE_EXPIRATION') || 2592000000;
@@ -39,6 +42,14 @@ export class AuthController {
       result.refreshToken,
       cookieExpiration,
     );
+    if ((result as any).sessionId) {
+       res.cookie(AUTH_CONSTANTS.COOKIE_NAMES.SESSION, (result as any).sessionId, {
+         httpOnly: true,
+         secure: this.configService.get<string>('COOKIE_SECURE') === 'true',
+         sameSite: this.configService.get<string>('COOKIE_SAMESITE') as any || 'lax',
+         maxAge: cookieExpiration,
+       });
+    }
 
     return result;
   }
@@ -47,10 +58,11 @@ export class AuthController {
   @Post('login')
   // @Throttle({ auth: { ttl: 60000, limit: 10 } })
   async login(
+    @Req() req: Request,
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(loginDto);
+    const result = await this.authService.login(loginDto, req);
 
     const cookieExpiration =
       this.configService.get<number>('COOKIE_EXPIRATION') || 2592000000;
@@ -61,6 +73,14 @@ export class AuthController {
       result.refreshToken,
       cookieExpiration,
     );
+    if ((result as any).sessionId) {
+       res.cookie(AUTH_CONSTANTS.COOKIE_NAMES.SESSION, (result as any).sessionId, {
+         httpOnly: true,
+         secure: this.configService.get<string>('COOKIE_SECURE') === 'true',
+         sameSite: this.configService.get<string>('COOKIE_SAMESITE') as any || 'lax',
+         maxAge: cookieExpiration,
+       });
+    }
 
     return result;
   }
@@ -86,9 +106,13 @@ export class AuthController {
   @Private()
   @Post('logout')
   @UseGuards(AuthGuard)
-  async logout(@Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.logout();
+  async logout(
+    @CurrentSession() sessionId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.logout(sessionId, res.req['user']?.id);
     CookieUtil.clearAllCookies(res);
+    res.clearCookie(AUTH_CONSTANTS.COOKIE_NAMES.SESSION);
     return result;
   }
 

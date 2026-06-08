@@ -3,10 +3,13 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import { UserRepository } from 'src/modules/users/repositories/user.repository';
+import { SessionsService } from 'src/modules/sessions/sessions.service';
 import { HashUtil } from 'src/common/utils/hash.util';
 import { ValidatorsUtil } from 'src/common/utils/validators.util';
 import { LoginDto } from './dtos/login.dto';
@@ -23,9 +26,10 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
+  async register(registerDto: RegisterDto, req: Request): Promise<AuthResponseDto> {
     const { email, username, password, passwordConfirm } = registerDto;
 
     if (password !== passwordConfirm) {
@@ -69,10 +73,12 @@ export class AuthService {
       status: UserStatus.ACTIVE,
     });
 
-    return this.generateAuthResponse(user);
+    const session = await this.sessionsService.createSession(user.id, req);
+
+    return this.generateAuthResponse(user, session.id);
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto, req: Request): Promise<AuthResponseDto> {
     const { emailOrUsername, password } = loginDto;
 
     const user =
@@ -136,7 +142,9 @@ export class AuthService {
       lastLoginAt: user.lastLoginAt,
     });
 
-    return this.generateAuthResponse(user);
+    const session = await this.sessionsService.createSession(user.id, req);
+
+    return this.generateAuthResponse(user, session.id);
   }
 
   async refreshToken(token: string): Promise<AuthResponseDto> {
@@ -152,13 +160,31 @@ export class AuthService {
         throw new UnauthorizedException(MESSAGES.USER.ACCOUNT_DEACTIVATED);
       }
 
-      return this.generateAuthResponse(user);
+      if (payload.sessionId) {
+        const isSessionValid = await this.sessionsService.validateSession(
+          payload.sessionId,
+        );
+        if (!isSessionValid) {
+          throw new UnauthorizedException(MESSAGES.ERROR.INVALID_TOKEN);
+        }
+        await this.sessionsService.updateLastActivity(payload.sessionId);
+      }
+
+      return this.generateAuthResponse(user, payload.sessionId);
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException(MESSAGES.AUTH.REFRESH_FAILED);
     }
   }
 
-  async logout(): Promise<{ message: string }> {
+  async logout(sessionId?: string, userId?: string): Promise<{ message: string }> {
+    if (sessionId && userId) {
+      await this.sessionsService.revokeSession(sessionId, userId).catch(() => {
+        // Ignore if session not found during logout
+      });
+    }
     return { message: MESSAGES.AUTH.LOGOUT_SUCCESS };
   }
 
@@ -184,7 +210,7 @@ export class AuthService {
     };
   }
 
-  private generateAuthResponse(user: any): AuthResponseDto {
+  private generateAuthResponse(user: any, sessionId?: string): AuthResponseDto {
     const accessTokenExpiration = parseInt(
       this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '900',
       10,
@@ -200,6 +226,7 @@ export class AuthService {
         email: user.email,
         username: user.username,
         role: user.role,
+        sessionId,
       },
       { expiresIn: accessTokenExpiration },
     );
@@ -209,6 +236,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
+        sessionId,
       },
       { expiresIn: refreshTokenExpiration },
     );
@@ -223,6 +251,7 @@ export class AuthService {
         username: user.username,
       },
       message: MESSAGES.AUTH.LOGIN_SUCCESS,
-    };
+      ...(sessionId ? { sessionId } : {}),
+    } as AuthResponseDto;
   }
 }

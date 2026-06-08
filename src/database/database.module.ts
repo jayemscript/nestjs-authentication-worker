@@ -4,9 +4,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database.service';
 import { User } from 'src/modules/users/entities/user.entity';
+import { Session } from 'src/modules/sessions/entities/session.entity';
 
 
-const ENTITIES = [User];
+const ENTITIES = [User, Session];
 
 @Global()
 @Module({

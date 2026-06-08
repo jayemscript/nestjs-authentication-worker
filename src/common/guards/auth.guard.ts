@@ -4,28 +4,59 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { MESSAGES } from '../constants/messages.constants';
+import { SessionsService } from '../../modules/sessions/sessions.service';
+import { CookieUtil } from '../utils/cookie.util';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    @Inject(SessionsService)
+    private readonly sessionsService: SessionsService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
+    const response = context.switchToHttp().getResponse<Response>();
     const token = this.extractToken(request);
 
     if (!token) {
+      CookieUtil.clearAllCookies(response);
       throw new UnauthorizedException(MESSAGES.ERROR.UNAUTHORIZED);
     }
 
     try {
       const payload = this.jwtService.verify(token);
       request['user'] = payload;
+      
+      if (this.configService.get<string>('FEATURE_SESSION_TRACKING') === 'true') {
+        if (!payload.sessionId) {
+          throw new UnauthorizedException(MESSAGES.ERROR.INVALID_TOKEN);
+        }
+        
+        request['session'] = payload.sessionId;
+        
+        const isValid = await this.sessionsService.validateSession(payload.sessionId);
+        if (!isValid) {
+          throw new UnauthorizedException(MESSAGES.ERROR.INVALID_TOKEN);
+        }
+      } else if (payload.sessionId) {
+        request['session'] = payload.sessionId;
+      }
+      
       return true;
     } catch (error) {
+      CookieUtil.clearAllCookies(response);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException(MESSAGES.ERROR.INVALID_TOKEN);
     }
   }
