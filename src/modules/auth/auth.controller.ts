@@ -54,6 +54,19 @@ export class AuthController {
     return result;
   }
 
+  @Private()
+  @UseGuards(AuthGuard)
+  @Post('register-admin')
+  async registerAdmin(
+    @Req() req: Request,
+    @Body() registerDto: RegisterDto,
+  ) {
+    // Uses the same logic as register but requires an authenticated user.
+    // We don't set cookies here so we don't overwrite the admin's current session.
+    const result = await this.authService.register(registerDto, req);
+    return result;
+  }
+
   @Public()
   @Post('login')
   // @Throttle({ auth: { ttl: 60000, limit: 10 } })
