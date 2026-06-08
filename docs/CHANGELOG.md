@@ -30,19 +30,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feature flags for account locking, registration, deactivation
 
 ### Not Yet Implemented
-- Session tracking module
 - Multi-app context (appId integration in auth flow)
 - Password reset functionality
 - Email verification
 - SMS verification
 - Rate limiting
-- RBAC (separate service)
 - OAuth providers (Google, GitHub, etc.)
 
 ## [Unreleased]
 
+### Added
+- Session Module (device tracking, session limit enforcement)
+- Active session listing endpoint (GET /sessions)
+- Session revocation endpoints (DELETE /sessions/:id, /sessions/others, /sessions)
+- Strict session validation in AuthGuard (blocks revoked/expired sessions)
+- Automatic cookie clearing for invalid or revoked sessions
+- Cron Module with automated midnight cleanup for expired/revoked sessions
+- Private registration endpoint (POST /auth/register-admin)
+
 ### Planned for Next Version
-- Session module (device tracking, session revocation)
 - App-based authentication context
 - Password reset module
 - Email service integration
